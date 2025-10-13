@@ -1,0 +1,5 @@
+streamlit
+cryptography
+plotly
+pandas
+numpy
