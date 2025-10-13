@@ -50,18 +50,26 @@ def fast_wrap_key(pk, key: bytes):
 
 def wrap_key(pk, key: bytes):
     """
-    Bitwise educational wrap: slower, more explicit but still demo-only.
+    Bitwise educational wrap: slower but safe for any key structure.
+    Uses a derived pseudo-random mask based on the hash of the public key.
     """
-    bits = [b for b in key]
-    noisy = [(x ^ (pk[i % len(pk)] & 0xFF)) for i, x in enumerate(bits)]
-    return noisy
+    # derive a pseudo-random mask from the public key structure
+    pk_json = str(pk).encode()
+    seed = hashlib.sha256(pk_json).digest()
 
+    bits = [b for b in key]
+    noisy = [(x ^ seed[i % len(seed)]) for i, x in enumerate(bits)]
+    return noisy
 
 def unwrap_key(sk, wrapdata):
     """
-    Reverse of wrap_key() for demo. Works only with 'bitwise' wrap.
+    Reverse of wrap_key() for demo. Uses secret key to regenerate same mask.
     """
+    import hashlib
+    sk_json = str(sk).encode()
+    seed = hashlib.sha256(sk_json).digest()
+
     if isinstance(wrapdata, list):
-        bits = [(x ^ (sk[i % len(sk)] & 0xFF)) for i, x in enumerate(wrapdata)]
+        bits = [(x ^ seed[i % len(seed)]) for i, x in enumerate(wrapdata)]
         return bytes(bits)
     raise ValueError("Cannot unwrap mock-fast mode key")
