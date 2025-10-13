@@ -35,34 +35,33 @@ def encrypt_bit(pk_tuple, bit, q=4093, t_base=3, MAX_T_OFFSET=4):
     C = (B + E + (q//2 if bit else 0)) % q
     return r, A, C
 
-def decrypt_bit(sk, ct, q=4093):
-    """Decrypt a single bit (demo only)."""
-    r, A, C = ct
-    inner = sum(ai*si for ai,si in zip(A, sk)) % q
-    val = (C - inner) % q
-    val = val - q if val > q//2 else val
-    return 1 if abs(val) > q//4 else 0
+def fast_wrap_key(pk, key: bytes):
+    """
+    Mock-fast wrap function (for demo).
+    Simulates fast lattice-based key encapsulation but does NOT use real PQ crypto.
+    """
+    wrapped = base64.b64encode(key[::-1]).decode()  # reversible mock
+    return {
+        "method": "idn-fast",
+        "wrapped_key": wrapped,
+        "note": "mock fast wrap; not real PQ security"
+    }
 
-def wrap_key(pk_tuple, key_bytes, q=4093):
-    """Wrap a short AES key bitwise (demo; slow)."""
-    bits = []
-    for byte in key_bytes:
-        for i in range(8):
-            bit = (byte >> i) & 1
-            r, A, C = encrypt_bit(pk_tuple, bit, q=q)
-            bits.append({'r': base64.b64encode(r).decode(), 'A': A, 'C': C})
-    return bits
 
-def unwrap_key(sk, wrapped_bits, q=4093):
-    """Recover AES key from wrapped bits (demo)."""
-    out = []
-    for i in range(0, len(wrapped_bits), 8):
-        byte = 0
-        for j in range(8):
-            entry = wrapped_bits[i+j]
-            r = base64.b64decode(entry['r'])
-            A = entry['A']; C = entry['C']
-            bit = decrypt_bit(sk, (r, A, C), q=q)
-            byte |= (bit << j)
-        out.append(byte)
-    return bytes(out)
+def wrap_key(pk, key: bytes):
+    """
+    Bitwise educational wrap: slower, more explicit but still demo-only.
+    """
+    bits = [b for b in key]
+    noisy = [(x ^ (pk[i % len(pk)] & 0xFF)) for i, x in enumerate(bits)]
+    return noisy
+
+
+def unwrap_key(sk, wrapdata):
+    """
+    Reverse of wrap_key() for demo. Works only with 'bitwise' wrap.
+    """
+    if isinstance(wrapdata, list):
+        bits = [(x ^ (sk[i % len(sk)] & 0xFF)) for i, x in enumerate(wrapdata)]
+        return bytes(bits)
+    raise ValueError("Cannot unwrap mock-fast mode key")
