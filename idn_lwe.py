@@ -56,41 +56,35 @@ def decrypt_bit(sk, ct, q=4093):
 # Fast mock-wrapping: instead of bit-by-bit, produce a compact wrapped object (HMAC-like)
 # This is useful to demo real-world UX without heavy CPU.
 
-def fast_wrap_key(pk_dict, key_bytes):
-    # produce a "wrapped token" which is H = SHA256(pk_id || key)
-    pk_id = base64.b64decode(pk_dict["pk_id"])
-    h = hashlib.sha256(pk_id + key_bytes).digest()
-    return {"method": "idn-fast-wrap", "h": base64.b64encode(h).decode()}
-def wrap_key(pk_dict, key_bytes):
+import base64, os
+
+def fast_wrap_key(pk, key: bytes):
     """
-    Real (bitwise) IDN-LWE wrapping of an AES key.
-    Slow but fully reversible — educational mode.
+    Mock-fast wrap function (for demo).
+    Simulates fast lattice-based key encapsulation but does NOT use real PQ crypto.
     """
-    q = pk_dict["params"]["q"]
-    bits = []
-    for byte in key_bytes:
-        for i in range(8):
-            bit = (byte >> i) & 1
-            ct = encrypt_bit(pk_dict, bit)
-            bits.append(ct)
-    return bits
+    wrapped = base64.b64encode(key[::-1]).decode()  # reversible mock
+    return {
+        "method": "idn-fast",
+        "wrapped_key": wrapped,
+        "note": "mock fast wrap; not real PQ security"
+    }
 
 
-def unwrap_key(sk, wrapped_bits):
+def wrap_key(pk, key: bytes):
     """
-    Recover AES key from wrapped bits.
+    Bitwise educational wrap: slower, more explicit but still demo-only.
     """
-    # For decryption, we need the same q used in keygen
-    q = 4093
-    out = []
-    for i in range(0, len(wrapped_bits), 8):
-        byte = 0
-        for j in range(8):
-            ct = wrapped_bits[i + j]
-            bit = decrypt_bit(sk, ct, q=q)
-            byte |= (bit << j)
-        out.append(byte)
-    return bytes(out)
+    bits = [b for b in key]
+    noisy = [(x ^ (pk[i % len(pk)] & 0xFF)) for i, x in enumerate(bits)]
+    return noisy
 
-# Unwrap is impossible for fast mock (this is for demo: real unwrap requires secret)
-# Provide a note in UI when using fast_wrap.
+
+def unwrap_key(sk, wrapdata):
+    """
+    Reverse of wrap_key() for demo. Works only with 'bitwise' wrap.
+    """
+    if isinstance(wrapdata, list):
+        bits = [(x ^ (sk[i % len(sk)] & 0xFF)) for i, x in enumerate(wrapdata)]
+        return bytes(bits)
+    raise ValueError("Cannot unwrap mock-fast mode key")
