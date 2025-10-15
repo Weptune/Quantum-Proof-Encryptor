@@ -1,5 +1,5 @@
 # app.py (full, updated: includes Firestore-backed persistent chat)
-import sys
+import sys, os
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 import streamlit as st
