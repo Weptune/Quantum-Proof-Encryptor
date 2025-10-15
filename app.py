@@ -1,4 +1,7 @@
 # app.py (full, updated: includes Firestore-backed persistent chat)
+import os
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 import streamlit as st
 import base64, json, time, io, os
 from core import idn_lwe, hybrid_crypto, simulation
